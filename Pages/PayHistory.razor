@@ -1,0 +1,74 @@
+﻿@page "/payhistory"
+@using Blazor4.Service;
+@using Blazor4.Data
+@using Blazor4.Data.CustomProvider;
+@using Microsoft.AspNetCore.Identity
+@using System.Security.Claims
+@inject UserManager<ApplicationUser> userManager
+@inject IHttpContextAccessor httpContext
+@inject RoleManager<ApplicationRole> roleManager
+@inject SearchService SearchService
+
+<div class="row">
+    <div class="col-12">
+        <ul class="list-group">
+            <li class="list-group-item" style="list-style-type: none;">
+                <strong>BusinessEntityID:</strong>
+                <span></span>
+            </li>
+            <li class="list-group-item" style="list-style-type: none;">
+                <strong>RateChangeDate:</strong>
+                <span></span>
+            </li>
+            <li class="list-group-item" style="list-style-type: none;">
+                <strong>Rate:</strong>
+                <span></span>
+            </li>
+            <li class="list-group-item" style="list-style-type: none;">
+                <strong>Pay Frequency:</strong>
+                <span></span>
+            </li>
+            <li class="list-group-item" style="list-style-type: none;">
+                <strong>Modified Date:</strong>
+                <span></span>
+            </li>
+        </ul>
+    </div>
+</div>
+
+@code {
+    private IList<string> userRoles;
+    private CustomRoleManager customRoleManager;
+
+    [Inject]
+    public CustomRoleManager CustomRoleManager { get; set; }
+
+    [Authorize]
+    protected override async Task OnInitializedAsync()
+    {
+        customRoleManager = CustomRoleManager;
+
+        var user = httpContext.HttpContext?.User;
+
+        if (user != null && user.Identity?.IsAuthenticated == true)
+        {
+            var userId = userManager.GetUserId(user);
+            var applicationUser = await userManager.FindByIdAsync(userId);
+
+            if (applicationUser != null)
+            {
+                bool isAdmin = customRoleManager.AdminEmails.Contains(applicationUser.Email);
+
+                if (isAdmin)
+                {
+                    userRoles = new List<string> { "Admin" };
+                }
+                else
+                {
+                    userRoles = await userManager.GetRolesAsync(applicationUser);
+                }
+            }
+        }
+    }
+
+}

@@ -1,0 +1,102 @@
+﻿@page "/fetchdata"
+@using Blazor4.Data
+@using Blazor4.Data.CustomProvider;
+@using Microsoft.AspNetCore.Identity
+@using System.Security.Claims
+@*@attribute [Authorize(Roles = "Admin")]*@
+@inject WeatherForecastService ForecastService
+@inject UserManager<ApplicationUser> userManager
+@inject IHttpContextAccessor httpContext
+@inject RoleManager<ApplicationRole> roleManager
+
+
+<PageTitle>Weather forecast</PageTitle>
+
+<h1>Weather forecast</h1>
+
+<p>This component demonstrates fetching data from a service.</p>
+
+@foreach (var role in userRoles)
+{
+    <p>@role</p>
+}
+
+@if (forecasts == null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Temp. (C)</th>
+                <th>Temp. (F)</th>
+                <th>Summary</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var forecast in forecasts)
+            {
+                <tr>
+                    <td>@forecast.Date.ToShortDateString()</td>
+                    <td>@forecast.TemperatureC</td>
+                    <td>@forecast.TemperatureF</td>
+                    <td>@forecast.Summary</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+
+
+
+    @code {
+  
+    private WeatherForecast[]? forecasts;
+    private IList<string> userRoles;
+    private CustomRoleManager customRoleManager;
+
+    [Inject]
+    public CustomRoleManager CustomRoleManager { get; set; }
+
+    [Authorize]
+    protected override async Task OnInitializedAsync()
+    {
+        customRoleManager = CustomRoleManager;
+
+        var user = httpContext.HttpContext?.User;
+
+        if (user != null && user.Identity?.IsAuthenticated == true)
+        {
+            var userId = userManager.GetUserId(user);
+            var applicationUser = await userManager.FindByIdAsync(userId);
+
+            if (applicationUser != null)
+            {
+                
+                bool isAdmin = customRoleManager.AdminEmails.Contains(applicationUser.Email);
+
+                if (isAdmin)
+                {
+                    // Add the "Admin" role to the user
+                    userRoles = new List<string> { "Admin" };
+                }
+                else
+                {
+                    // Get all roles for the current user
+                    userRoles = await userManager.GetRolesAsync(applicationUser);
+                }
+            }
+        }
+    }
+
+}
+    //forecasts = await ForecastService.GetForecastAsync(DateOnly.FromDateTime(DateTime.Now)); }
+
+
+
+
+}
+
